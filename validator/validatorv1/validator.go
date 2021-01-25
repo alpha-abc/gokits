@@ -40,6 +40,7 @@ const (
 const (
 	regex    = "regex"
 	required = "required"
+	next     = "->"
 )
 
 // UnsupportedTypeError 未支持的类型
@@ -285,7 +286,7 @@ func Validate(v interface{}) []error {
 			}
 
 		case reflect.Array, reflect.Slice:
-
+			// 数组, 切片需要 `next` 规则
 			for i := 0; i < value.Len(); i++ {
 				lst.PushBack(&element{
 					parentKind: value.Kind(),
@@ -347,4 +348,181 @@ func Validate(v interface{}) []error {
 
 	}
 	return errs
+}
+
+// min=10,range=1:2:3,/,email
+// 用到的特殊符号 , : /
+
+// Validator ..
+type Validator struct {
+	mp map[reflect.Kind]map[string]Ruler
+}
+
+// Ruler 规则
+type Ruler interface {
+	RuleDescer
+	RuleFuncer
+}
+
+// RuleDescer ..
+type RuleDescer interface {
+	Desc() string
+}
+
+// RuleFuncer ..
+type RuleFuncer interface {
+	Verify(reflect.Value, []string) error
+}
+
+// TagRule 从tag标签中解析生成
+type TagRule struct {
+	Name   string
+	Params []string
+}
+
+// SetValidationFunc 设置验证函数
+func (v *Validator) SetValidationFunc(tp reflect.Kind, ruleName string, rf Ruler) error {
+	if tp == reflect.Invalid {
+		return errors.New("invalid reflect kind")
+	}
+
+	if ruleName == "" {
+		return errors.New("rule name cannot be empty")
+	}
+
+	if rf == nil {
+		if _, ok := v.mp[tp]; ok {
+			delete(v.mp[tp], ruleName)
+		}
+
+		return nil
+	}
+
+	if _, ok := v.mp[tp]; !ok {
+		v.mp[tp] = make(map[string]Ruler)
+	}
+
+	v.mp[tp][ruleName] = rf
+	return nil
+}
+
+// Verify 参数验证
+func (v *Validator) Verify(rv reflect.Value, ruleName string, params []string) error {
+	var rule, ok = v.mp[rv.Kind()]
+	if !ok {
+		// 函数不支持的类型校验
+		return nil
+	}
+
+	var r, ok1 = rule[ruleName]
+	if !ok1 {
+		// 未知/未实现的验证函数
+		return nil
+	}
+
+	return r.Verify(rv, params)
+}
+
+var commasPattern *regexp.Regexp = regexp.MustCompile(`((?:^|[^\\])(?:\\\\)*),`)
+var semicolonPattern *regexp.Regexp = regexp.MustCompile(`((?:^|[^\\])(?:\\\\)*);`)
+
+var equalPattern *regexp.Regexp = regexp.MustCompile(`((?:^|[^\\])(?:\\\\)*)=`)
+var slashPattern *regexp.Regexp = regexp.MustCompile(`((?:^|[^\\])(?:\\\\)*)/`)
+
+// 特殊字符
+const (
+	SymbolSemicolon        string = ";"
+	SymbolSemicolonEscaped string = "\\;"
+	SymbolCommas           string = ","
+	SymbolCommasEscaped    string = "\\,"
+	SymbolEqual            string = "="
+	SymbolSpace            string = " "
+)
+
+// ExtractFromTag 一共有3个特殊符号, `;`, `,` 和 `=`, 其中分号和逗号如果当成普通字符出现, 需要转义(\\; \\,)
+func (v *Validator) ExtractFromTag(tagStr string) (tagRule []TagRule) {
+	var semIdxArr = semicolonPattern.FindAllStringIndex(tagStr, -1)
+
+	// 处理分隔符 `;`
+	var rawRules []string
+	var lastSemIdx = 0
+	for _, arr := range semIdxArr {
+		rawRules = append(rawRules, tagStr[lastSemIdx:arr[1]-1])
+		lastSemIdx = arr[1]
+	}
+	rawRules = append(rawRules, tagStr[lastSemIdx:])
+
+	for _, rawRule := range rawRules {
+		if strings.Trim(rawRule, SymbolSpace) == "" {
+			continue
+		}
+
+		var tr = TagRule{}
+
+		var rule = strings.ReplaceAll(rawRule, SymbolSemicolonEscaped, SymbolSemicolon)
+
+		var nameParamsArr = strings.SplitN(rule, SymbolEqual, 2)
+		var name = strings.Trim(nameParamsArr[0], SymbolSpace)
+
+		// 以等号出现的情况
+		if name == "" {
+			continue
+		}
+
+		tr.Name = name
+
+		if len(nameParamsArr) > 1 {
+			var rawParams = nameParamsArr[1]
+			var commasIdxArr = commasPattern.FindAllStringIndex(rawParams, -1)
+
+			var params []string
+			var lastCommasIdx = 0
+			for _, arr := range commasIdxArr {
+				params = append(params, rawParams[lastCommasIdx:arr[1]-1])
+				lastCommasIdx = arr[1]
+			}
+			params = append(params, rawParams[lastCommasIdx:])
+
+			for i := 0; i < len(params); i++ {
+				var p = strings.ReplaceAll(params[i], SymbolCommasEscaped, SymbolCommas)
+				params[i] = p
+			}
+
+			tr.Params = params
+		}
+
+		tagRule = append(tagRule, tr)
+	}
+
+	return
+}
+
+// Validate ..
+func (v *Validator) Validate(vf interface{}) {
+
+}
+
+type ErrorArr []error
+type ValueMap map[string]ErrorArr
+
+type Value struct {
+	pKind reflect.Kind
+}
+
+func (v *Validator) Recursively(rv reflect.Value, idx int) {
+
+	switch rv.Kind() {
+	case reflect.Interface, reflect.Ptr:
+		if rv.IsNil() {
+			return
+		}
+
+		v.Recursively(rv.Elem())
+
+	case reflect.Struct:
+		for i := 0; i < rv.NumField(); i++ {
+
+		}
+	}
+
 }

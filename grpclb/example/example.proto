@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+// protoc example.proto --go_out=plugins=grpc:.
+
+package example;
+
+service Greeter {
+    rpc SayHello(Request) returns (Response) {}
+}
+
+message Request {
+    string content = 1;
+}
+
+message Response {
+    string content = 1;
+}
