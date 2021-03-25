@@ -369,6 +369,87 @@ func createFile(path string) (*os.File, error) {
 	return file, err
 }
 
+// 初始化设置
+
+// SetOutputs
+// path: 多个文件路径, 用逗号“,”隔开
+func (l *Logger) SetOutputs(paths string) *Logger {
+	var fs []*os.File
+
+	var ps = strings.Split(paths, ",")
+	for _, path := range ps {
+		switch path {
+		case "":
+		case "stdout":
+			fs = append(fs, os.Stdout)
+		case "stderr":
+			fs = append(fs, os.Stderr)
+		default:
+			var f, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+			if err != nil {
+				panic(err)
+			}
+
+			fs = append(fs, f)
+		}
+	}
+
+	logger.Outputs = fs
+	return l
+}
+
+// SetLevel 设置日志级别
+// level: 请传入常量参数 example: LevelDebug
+func (l *Logger) SetLevel(level int) *Logger {
+	if level < LevelDebug || level > LevelFatal {
+		panic("unsupport level")
+	}
+
+	l.Level = level
+	return l
+}
+
+// SetTimeFormat 设置时间显示格式
+// format : example : 2006-01-02 15:04:05.000
+func (l *Logger) SetTimeFormat(format string) *Logger {
+	l.TimeFormat = format
+	return l
+}
+
+// SetBackupType 设置备份类型
+// tp:
+//	size: 大小 (单位byte)
+//	s: 每秒
+//	m: 每分
+//	h: 每小时
+//	D: 每天
+//	M: 每月
+//	Y: 每年
+func (l *Logger) SetBackupType(tp string) *Logger {
+	if !(tp == "size" ||
+		tp == "s" ||
+		tp == "m" ||
+		tp == "h" ||
+		tp == "D" ||
+		tp == "M" ||
+		tp == "Y") {
+		panic("unsupport backup type")
+	}
+	logger.BackupType = tp
+	return l
+}
+
+// SetMaxSize 如果backup type为size, 需要设置文件最大限制
+// size: 文件最大大小 (单位size), example: 1024*1024*1024*50 = 50MB
+func (l *Logger) SetMaxSize(size int64) *Logger {
+	if size <= 0 {
+		panic("invalid file size")
+	}
+
+	l.MaxSize = size
+	return l
+}
+
 // Debug log
 func (l *Logger) Debug(v ...interface{}) {
 	var s = fmt.Sprintln(v...)
