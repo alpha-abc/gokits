@@ -51,99 +51,6 @@ func init() {
 	/**/
 }
 
-// New 日志实体初始化
-// @options: Outputs / Level / TimeFormat / BackupType / MaxSize / CallDepth ，空字符串为默认值
-func New(options ...string) (*Logger, error) {
-	var logger = &Logger{
-		Outputs:    []*os.File{os.Stdout},
-		Level:      LevelDebug,
-		TimeFormat: "2006-01-02 15:04:05.000",
-		BackupType: "D",
-		MaxSize:    1024 * 1024 * 1024 * 50,
-		CallDepth:  2,
-		InitTime:   time.Now(),
-	}
-
-	for i, option := range options {
-		if option == "" {
-			continue
-		}
-
-		switch i {
-		case 0:
-			// Outputs
-			var paths = strings.Split(option, ",")
-			if len(paths) <= 0 {
-				break
-			}
-
-			var fs []*os.File
-			for _, path := range paths {
-				switch path {
-				case "":
-				case "stdout":
-					fs = append(fs, os.Stdout)
-				case "stderr":
-					fs = append(fs, os.Stderr)
-				default:
-					var f, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-					if err != nil {
-						return nil, err
-					}
-
-					fs = append(fs, f)
-				}
-			}
-			logger.Outputs = fs
-		case 1:
-			// Level
-			var lvl, err = strconv.Atoi(option)
-			if err != nil {
-				return nil, err
-			}
-
-			if lvl < LevelDebug || lvl > LevelError {
-				return nil, errors.New("不支持的日志级别")
-			}
-
-			logger.Level = lvl
-		case 2:
-			// TimeFormat
-			logger.TimeFormat = option
-		case 3:
-			// BackupType
-			if !(option == "size" ||
-				option == "s" ||
-				option == "m" ||
-				option == "h" ||
-				option == "D" ||
-				option == "M" ||
-				option == "Y") {
-				return nil, errors.New("不支持的备份类型")
-			}
-			logger.BackupType = option
-		case 4:
-			// MaxSize
-			var size, err = strconv.Atoi(option)
-			if err != nil {
-				return nil, err
-			}
-			logger.MaxSize = int64(size)
-		case 5:
-			// CallDepth
-			var callDepth, err = strconv.Atoi(option)
-			if err != nil {
-				return nil, err
-			}
-			logger.CallDepth = callDepth
-		default:
-			break
-		}
-	}
-
-	return logger, nil
-}
-
 // Logger 日志实体
 // 请传递正确的初始化值
 // Outputs      example: []*os.File{os.Stdout}
@@ -156,17 +63,18 @@ func New(options ...string) (*Logger, error) {
 type Logger struct {
 	mux sync.Mutex
 
-	Outputs    []*os.File
-	Level      int
-	TimeFormat string
-	BackupType string
-	MaxSize    int64
-	CallDepth  int
-	InitTime   time.Time
+	outputs    []*os.File
+	level      int
+	timeFormat string
+	backupType string
+	maxSize    int64
+
+	callDepth int
+	initTime  time.Time
 }
 
 func (l *Logger) output(prefix, logstr string, level, color int) error {
-	if l.Level > level {
+	if l.level > level {
 		return nil
 	}
 
@@ -178,9 +86,9 @@ func (l *Logger) output(prefix, logstr string, level, color int) error {
 	var buf []byte
 
 	/*logstr format*/
-	var tfmt = now.Format(l.TimeFormat)
+	var tfmt = now.Format(l.timeFormat)
 
-	var pc, fileName, lineNumber, ok = runtime.Caller(l.CallDepth)
+	var pc, fileName, lineNumber, ok = runtime.Caller(l.callDepth)
 	var funcName = ""
 	if !ok {
 		return errors.New("runtime caller false")
@@ -223,7 +131,7 @@ func (l *Logger) output(prefix, logstr string, level, color int) error {
  return, FALSE (index + 1, error), SUCCESS (0, nil)
 */
 func (l *Logger) write(b *[]byte, time time.Time, color int) (int, error) {
-	for i, f := range l.Outputs {
+	for i, f := range l.outputs {
 		var fd = f.Fd()
 		var name = f.Name()
 
@@ -245,7 +153,7 @@ func (l *Logger) write(b *[]byte, time time.Time, color int) (int, error) {
 			var bakPath = ""
 
 			var bakFmt = "%s.bak.%s"
-			switch l.BackupType {
+			switch l.backupType {
 			case "size":
 				//file size
 				var fileInfo, fiErr = f.Stat()
@@ -253,52 +161,52 @@ func (l *Logger) write(b *[]byte, time time.Time, color int) (int, error) {
 					return i + 1, fiErr
 				}
 
-				if fileInfo.Size() > l.MaxSize {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName))
-					l.InitTime = time
+				if fileInfo.Size() > l.maxSize {
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName))
+					l.initTime = time
 				}
 			case "s":
 				//second
-				var _, _, lSec = l.InitTime.Clock()
+				var _, _, lSec = l.initTime.Clock()
 				if lSec < sec {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName))
+					l.initTime = time
 				}
 			case "m":
 				//minute
-				var _, lMin, _ = l.InitTime.Clock()
+				var _, lMin, _ = l.initTime.Clock()
 				if lMin < min {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName[0:len(backupTypeName)-3]))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName[0:len(backupTypeName)-3]))
+					l.initTime = time
 				}
 			case "h":
 				//hour
-				var lHour, _, _ = l.InitTime.Clock()
+				var lHour, _, _ = l.initTime.Clock()
 				if lHour < hour {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName[0:len(backupTypeName)-6]))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName[0:len(backupTypeName)-6]))
+					l.initTime = time
 				}
 			case "D":
 				//day
-				var _, _, lDay = l.InitTime.Date()
+				var _, _, lDay = l.initTime.Date()
 				if lDay < day {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName[0:len(backupTypeName)-9]))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName[0:len(backupTypeName)-9]))
+					l.initTime = time
 				}
 			case "M":
 				//month
-				var _, lMonth, _ = l.InitTime.Date()
+				var _, lMonth, _ = l.initTime.Date()
 				if lMonth < month {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName[0:len(backupTypeName)-12]))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName[0:len(backupTypeName)-12]))
+					l.initTime = time
 				}
 
 			case "Y":
 				//year
-				var lYear, _, _ = l.InitTime.Date()
+				var lYear, _, _ = l.initTime.Date()
 				if lYear < year {
-					bakPath = fmt.Sprintf(bakFmt, name, l.InitTime.Format(backupTypeName[0:len(backupTypeName)-15]))
-					l.InitTime = time
+					bakPath = fmt.Sprintf(bakFmt, name, l.initTime.Format(backupTypeName[0:len(backupTypeName)-15]))
+					l.initTime = time
 				}
 			default:
 				//pass
@@ -316,7 +224,7 @@ func (l *Logger) write(b *[]byte, time time.Time, color int) (int, error) {
 						return i + 1, errC
 					}
 
-					l.Outputs[i] = newFile
+					l.outputs[i] = newFile
 					f = newFile
 				}
 			}
@@ -371,6 +279,21 @@ func createFile(path string) (*os.File, error) {
 
 // 初始化设置
 
+// New 日志实体初始化
+func New() *Logger {
+	var logger = &Logger{
+		outputs:    []*os.File{os.Stdout},
+		level:      LevelDebug,
+		timeFormat: "2006-01-02 15:04:05.000",
+		backupType: "D",
+		maxSize:    1024 * 1024 * 1024 * 50,
+		callDepth:  2,
+		initTime:   time.Now(),
+	}
+
+	return logger
+}
+
 // SetOutputs
 // path: 多个文件路径, 用逗号“,”隔开
 func (l *Logger) SetOutputs(paths string) *Logger {
@@ -394,7 +317,7 @@ func (l *Logger) SetOutputs(paths string) *Logger {
 		}
 	}
 
-	logger.Outputs = fs
+	logger.outputs = fs
 	return l
 }
 
@@ -405,14 +328,14 @@ func (l *Logger) SetLevel(level int) *Logger {
 		panic("unsupport level")
 	}
 
-	l.Level = level
+	l.level = level
 	return l
 }
 
 // SetTimeFormat 设置时间显示格式
 // format : example : 2006-01-02 15:04:05.000
 func (l *Logger) SetTimeFormat(format string) *Logger {
-	l.TimeFormat = format
+	l.timeFormat = format
 	return l
 }
 
@@ -435,7 +358,7 @@ func (l *Logger) SetBackupType(tp string) *Logger {
 		tp == "Y") {
 		panic("unsupport backup type")
 	}
-	logger.BackupType = tp
+	logger.backupType = tp
 	return l
 }
 
@@ -446,7 +369,7 @@ func (l *Logger) SetMaxSize(size int64) *Logger {
 		panic("invalid file size")
 	}
 
-	l.MaxSize = size
+	l.maxSize = size
 	return l
 }
 
@@ -518,15 +441,9 @@ func (l *Logger) Fatalf(format string, v ...interface{}) {
 var logger *Logger
 
 // Init 初始化
-// @options: Outputs / Level / TimeFormat / BackupType / MaxSize / CallDepth ，空字符串为默认值
-func Init(options ...string) error {
-	var l, err = New(options...)
-	if err != nil {
-		return err
-	}
-
-	logger = l
-	return nil
+func Init() *Logger {
+	logger = New()
+	return logger
 }
 
 // Debug log

@@ -2,43 +2,46 @@ package logv1_test
 
 import (
 	"fmt"
-	"os"
+	"strconv"
 	"testing"
-	"time"
-
-	logv1 "github.com/alpha-abc/gokits/log/logv1"
 )
+
+func Test_Itoa(t *testing.T) {
+	var n, e = strconv.Atoi("54975581388800")
+	fmt.Println(n, e)
+	fmt.Println("----")
+}
 
 /*
 export GOPATH=/root/devel/golang/go-libs/
 go test go-log -v -test.run Test_Output
 */
-func Test_Output(t *testing.T) {
-	var fs = []*os.File{
-		os.Stdout,
-	}
+// func Test_Output(t *testing.T) {
+// 	var fs = []*os.File{
+// 		os.Stdout,
+// 	}
 
-	//var logger = NewLogger(fs, LevelDebug, "2006-01-02 15:04:05.000", "D", 0)
-	var logger = &logv1.Logger{
-		Outputs:    fs,
-		Level:      logv1.LevelDebug,
-		TimeFormat: "2006-01-02 15:04:05.000",
-		BackupType: "D",
-		CallDepth:  2,
-		InitTime:   time.Now(),
-	}
+// 	//var logger = NewLogger(fs, LevelDebug, "2006-01-02 15:04:05.000", "D", 0)
+// 	var logger = &logv1.Logger{
+// 		Outputs:    fs,
+// 		Level:      logv1.LevelDebug,
+// 		TimeFormat: "2006-01-02 15:04:05.000",
+// 		BackupType: "D",
+// 		CallDepth:  2,
+// 		InitTime:   time.Now(),
+// 	}
 
-	logger.Debug("12", "asd")
-	logger.Debugf("%s - %s", "12", "34")
+// 	logger.Debug("12", "asd")
+// 	logger.Debugf("%s - %s", "12", "34")
 
-	logger.Info("12", "asd")
-	logger.Warn("12", "asd")
-	logger.Error("12", "asd")
+// 	logger.Info("12", "asd")
+// 	logger.Warn("12", "asd")
+// 	logger.Error("12", "asd")
 
-	fmt.Printf("%s", "abc")
-	fmt.Printf("%s", "def")
-	//logger.Fatal("12", "asd")
-}
+// 	fmt.Printf("%s", "abc")
+// 	fmt.Printf("%s", "def")
+// 	//logger.Fatal("12", "asd")
+// }
 
 // func Test_FileSize(t *testing.T) {
 // 	var f, _ = os.OpenFile("/root/devel/golang/go-libs/src/go-log/LICENSE", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
@@ -88,4 +91,3 @@ func Test_Output(t *testing.T) {
 // 		l.Println("benchmark test测试")
 // 	}
 // }
-
