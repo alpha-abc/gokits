@@ -82,6 +82,7 @@ func NewNode(nodeID int64) (*Node, error) {
 // - 保证任意两个Node不能有相同的节点ID
 func (n *Node) Generate() (ID, error) {
 	n.mux.Lock()
+	defer n.mux.Unlock()
 
 	var now = currMillisecond() // 当前毫秒时间戳
 	var nodeTime = n.relativeTimestamp + n.epoch
@@ -109,7 +110,6 @@ func (n *Node) Generate() (ID, error) {
 		(n.nodeID << n.sequenceBitLen) |
 		n.sequence
 
-	n.mux.Unlock()
 	return ID(resp), nil
 }
 
