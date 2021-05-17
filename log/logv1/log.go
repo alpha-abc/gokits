@@ -340,6 +340,7 @@ func (l *Logger) SetLevel(level int) *Logger {
 	return l
 }
 
+// SetLevelStr 设置日志级别
 func (l *Logger) SetLevelStr(levelStr string) *Logger {
 	var lvl, ok = levelMap[levelStr]
 	if !ok {
