@@ -34,6 +34,14 @@ const (
 	LevelFatal = 4
 )
 
+var levelMap = map[string]int{
+	"debug": LevelDebug,
+	"info":  LevelInfo,
+	"warn":  LevelWarn,
+	"error": LevelError,
+	"fatal": LevelFatal,
+}
+
 /*prefix*/
 const (
 	PrefixDebug = "[DEBUG]"
@@ -330,6 +338,15 @@ func (l *Logger) SetLevel(level int) *Logger {
 
 	l.level = level
 	return l
+}
+
+func (l *Logger) SetLevelStr(levelStr string) *Logger {
+	var lvl, ok = levelMap[levelStr]
+	if !ok {
+		panic("unsupport level str")
+	}
+
+	return l.SetLevel(lvl)
 }
 
 // SetTimeFormat 设置时间显示格式
