@@ -21,3 +21,12 @@ func TestExample(t *testing.T) {
 	err = nil
 	fmt.Println(errorsv1.DetailString(err))
 }
+
+func TestDetailString(t *testing.T) {
+	var err = fmt.Errorf("err1")
+	err = fmt.Errorf("err2: %w", err)
+	err = fmt.Errorf("err3: %w", err)
+	err = fmt.Errorf("err4: %w", err)
+
+	fmt.Println(errorsv1.DetailString(err))
+}
