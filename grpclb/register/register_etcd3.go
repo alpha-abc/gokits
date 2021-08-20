@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 const leaseIDZero clientv3.LeaseID = 0

@@ -9,12 +9,14 @@ import (
 
 	"github.com/alpha-abc/gokits/grpclb/example"
 	"github.com/alpha-abc/gokits/grpclb/register"
-	"github.com/coreos/etcd/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 )
 
 var port = flag.String("port", "8001", "listening port")
 var ip = "127.0.0.1"
+
+var etcdAddr = "alpha.org:2379"
 
 type rpcServer struct {
 	ip   string
@@ -22,7 +24,7 @@ type rpcServer struct {
 }
 
 func (r *rpcServer) SayHello(ctx context.Context, req *example.Request) (*example.Response, error) {
-	fmt.Println(r.ip, r.port, req.Content)
+	fmt.Println(r.ip, r.port, "from client", req.Content)
 	return &example.Response{
 		Content: fmt.Sprintf("reply %s", req.Content),
 	}, nil
@@ -36,7 +38,7 @@ func runWithEtcd3() {
 	}
 
 	etcdCli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{etcdAddr},
 		DialTimeout: 12 * time.Second,
 	})
 
@@ -45,6 +47,7 @@ func runWithEtcd3() {
 	}
 
 	var key = register.CreateEtcd3Key("grpclb-etcd3", "test-server", "1.0.0", fmt.Sprintf("%s:%s", ip, port))
+	fmt.Println("key", key)
 	var val = fmt.Sprintf("%s:%s", ip, port)
 
 	if _, err := register.RegistEtcd3Registrar(key, val, etcdCli, 5, 9); err != nil {

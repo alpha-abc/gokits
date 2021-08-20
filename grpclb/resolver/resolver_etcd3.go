@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc/resolver"
 )
 
@@ -30,7 +30,7 @@ func RegistEtcd3Resolver(scheme string, etcd3Cli *clientv3.Client, watchPath str
 }
 
 // Build implement resolver.Builder
-func (r *etcd3Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (r *etcd3Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r.cc = cc
 	r.addrDict = make(map[string]resolver.Address)
 
@@ -49,7 +49,7 @@ func (r *etcd3Resolver) Close() {
 }
 
 // ResolveNow implement resolver.Resolver
-func (r *etcd3Resolver) ResolveNow(rn resolver.ResolveNowOption) {
+func (r *etcd3Resolver) ResolveNow(rn resolver.ResolveNowOptions) {
 
 }
 
