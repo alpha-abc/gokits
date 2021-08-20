@@ -1,0 +1,8 @@
+* grpc hash 负载均衡
+
+* 参考文档
+- grpc 连接管理 https://stackoverflow.com/questions/56067076/grpc-connection-management-in-golang
+- http://yangxikun.github.io/golang/2019/10/19/golang-grpc-client-side-lb.html
+
+* grpc版本升级
+ 当前依赖grpc1.40版本, 同时更新etcd库
