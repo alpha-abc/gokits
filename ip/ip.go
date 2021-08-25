@@ -10,13 +10,13 @@ import (
 func GetLocalIPV4() string {
 	var localIP = ""
 
-	var addrs, errIA = net.InterfaceAddrs()
-	if errIA != nil {
+	var reg, err = regexp.Compile(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$`)
+	if err != nil {
 		return localIP
 	}
 
-	var reg, err = regexp.Compile(`^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$`)
-	if err != nil {
+	var addrs, errIA = net.InterfaceAddrs()
+	if errIA != nil {
 		return localIP
 	}
 
@@ -27,8 +27,11 @@ func GetLocalIPV4() string {
 			if strings.HasPrefix(addr.String(), "127.0.0.1") {
 				continue
 			}
-			localIP = strings.Split(addr.String(), "/")[0]
-			break
+			var s = strings.Split(addr.String(), "/")
+			if len(s) > 0 {
+				localIP = strings.Split(addr.String(), "/")[0]
+				break
+			}
 		}
 	}
 
