@@ -46,6 +46,10 @@ type Node struct {
 	sequence          int64
 }
 
+func (n *Node) SetNodeID(nodeID int64) {
+	n.nodeID = nodeID
+}
+
 func currMillisecond() int64 {
 	return time.Now().UnixNano() / 1e6
 }
