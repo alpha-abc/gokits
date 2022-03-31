@@ -25,6 +25,10 @@ func (e *Error) Error() string {
 		return defaultNilText
 	}
 
+	if e.Code == "" {
+		return e.Desc
+	}
+
 	return fmt.Sprintf("[%s] %s", e.Code, e.Desc)
 }
 
@@ -62,10 +66,28 @@ func New(code, desc string) error {
 	}
 }
 
+func SimpleNew(desc string) error {
+	return &Error{
+		Code:    "",
+		Desc:    desc,
+		WrapErr: nil,
+		Stack:   getStack(2),
+	}
+}
+
 // Wrap 包装一个新的错误信息
 func Wrap(code, desc string, err error) error {
 	return &Error{
 		Code:    code,
+		Desc:    desc,
+		WrapErr: err,
+		Stack:   getStack(2),
+	}
+}
+
+func SimpleWrap(desc string, err error) error {
+	return &Error{
+		Code:    "",
 		Desc:    desc,
 		WrapErr: err,
 		Stack:   getStack(2),

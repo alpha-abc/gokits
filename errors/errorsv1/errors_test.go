@@ -14,6 +14,7 @@ func TestExample(t *testing.T) {
 
 	err = errorsv1.Wrap("500", "system error", err)
 	err = errorsv1.Wrap("1001", "operator failure", err)
+	err = errorsv1.SimpleWrap("simple wrap", err)
 
 	fmt.Println(errorsv1.DetailString(err))
 	fmt.Println(err.Error())
